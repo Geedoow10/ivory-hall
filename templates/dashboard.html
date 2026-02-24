@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="margin:20px 0 16px;">Your Bookings</h2>
+
+{% if appointments %}
+  {% for a in appointments %}
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-inner">
+        <h3 style="margin:0 0 10px;">{{ a.title }}</h3>
+        <div><b>Hall:</b> {{ a.hall_name }}</div>
+        <div><b>Start:</b> {{ a.start_time.strftime("%d %b %Y, %H:%M") }}</div>
+        <div><b>End:</b> {{ a.end_time.strftime("%d %b %Y, %H:%M") }}</div>
+        {% if a.description %}
+          <div><b>Description:</b> {{ a.description }}</div>
+        {% endif %}
+
+        <div style="margin-top:10px;">
+          <b>Status:</b>
+          {% if a.status == "approved" %}
+            <span class="badge b-approved">APPROVED</span>
+          {% elif a.status == "rejected" %}
+            <span class="badge b-rejected">REJECTED</span>
+          {% elif a.status == "cancelled" %}
+            <span class="badge b-cancelled">CANCELLED</span>
+          {% else %}
+            <span class="badge b-pending">PENDING</span>
+          {% endif %}
+        </div>
+
+        {% if a.cancel_reason %}
+          <div class="muted" style="margin-top:6px; font-size:13px;">Reason: {{ a.cancel_reason }}</div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="card">
+    <div class="card-inner muted">No bookings yet. <a href="{{ url_for('book') }}" style="color:var(--gold);">Make one now</a>.</div>
+  </div>
+{% endif %}
+
+{% endblock %}

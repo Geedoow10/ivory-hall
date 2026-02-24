@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card" style="max-width:560px; margin:30px auto;">
+  <div class="card-inner">
+
+    <h2 style="color:#86efac; margin:0 0 6px;">✅ Booking Request Sent</h2>
+    <p style="margin-top:10px;">Thank you for choosing <b>IVORY HALL</b>.</p>
+    <p class="muted">Your booking request was received successfully and is now pending review.</p>
+
+    <hr style="margin:15px 0; border:0; border-top:1px solid rgba(255,255,255,.15);">
+
+    <h3 style="margin:0 0 12px;">Booking Details</h3>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div><b>Name:</b> {{ appt.guest_name }}</div>
+      <div><b>Email:</b> {{ appt.guest_email }}</div>
+      <div><b>Hall:</b> {{ appt.hall_name }}</div>
+      <div><b>Title:</b> {{ appt.title }}</div>
+      <div><b>Start:</b> {{ appt.start_time.strftime("%d %b %Y, %H:%M") }}</div>
+      <div><b>End:</b> {{ appt.end_time.strftime("%d %b %Y, %H:%M") }}</div>
+    </div>
+
+    <div style="margin-top:18px; padding:14px; border-radius:12px; background:rgba(214,179,106,.08); border:1px solid rgba(214,179,106,.25);">
+      <b>Your Booking ID:</b>
+      <span style="color:#fbbf24; font-size:22px; margin-left:8px;">#{{ appt.id }}</span>
+      <div class="muted" style="margin-top:6px; font-size:13px;">
+        ⚠️ Save this ID — you will need it if you want to cancel later.
+      </div>
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="{{ url_for('guest_book') }}" class="btn btn-gold">
+        Make another booking
+      </a>
+      <a href="{{ url_for('guest_cancel') }}" class="btn" style="border-color:rgba(239,68,68,.4); color:#fca5a5;">
+        Cancel this booking
+      </a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

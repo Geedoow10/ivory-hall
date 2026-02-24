@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IVORY HALL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  :root{
+    --bg:#0b0f19;
+    --card:#0f172a;
+    --card2:#111c33;
+    --text:#e5e7eb;
+    --muted:#a7b0c0;
+    --gold:#d6b36a;
+    --gold2:#b88a2f;
+    --line:rgba(214,179,106,.25);
+    --shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: radial-gradient(1200px 800px at 20% -10%, rgba(214,179,106,.18), transparent 55%),
+                radial-gradient(900px 700px at 90% 10%, rgba(56,189,248,.10), transparent 60%),
+                linear-gradient(180deg, #070a12, var(--bg));
+    color: var(--text);
+  }
+
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:1100px; margin:0 auto; padding:22px; }
+
+  /* TOP BAR */
+  .topbar{
+    position: sticky; top:0; z-index:50;
+    backdrop-filter: blur(10px);
+    background: rgba(11,15,25,.70);
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .topbar-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px;
+    padding:14px 22px;
+    max-width:1100px; margin:0 auto;
+  }
+  .brand{
+    display:flex; align-items:center; gap:12px;
+    font-weight:800; letter-spacing:.18em;
+    text-transform:uppercase;
+  }
+  .brand-badge{
+    width:38px; height:38px; border-radius:12px;
+    background: linear-gradient(135deg, rgba(214,179,106,.25), rgba(214,179,106,.05));
+    border:1px solid var(--line);
+    display:grid; place-items:center;
+    box-shadow: 0 10px 30px rgba(214,179,106,.12);
+  }
+  .brand-badge span{ color: var(--gold); font-weight:900; }
+  .nav{
+    display:flex; gap:14px; flex-wrap:wrap; justify-content:flex-end;
+  }
+  .nav a{
+    padding:9px 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.08);
+    color: var(--text);
+    font-weight:700;
+    font-size:14px;
+    transition:.2s;
+    background: rgba(255,255,255,.03);
+  }
+  .nav a:hover{
+    transform: translateY(-1px);
+    border-color: rgba(214,179,106,.35);
+    box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  }
+
+  /* CARDS */
+  .card{
+    background: linear-gradient(180deg, rgba(17,28,51,.85), rgba(15,23,42,.70));
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;
+    box-shadow: var(--shadow);
+  }
+  .card-inner{ padding:18px; }
+  .muted{ color: var(--muted); }
+
+  /* BUTTONS */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    gap:10px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    font-weight:800;
+    cursor:pointer;
+    transition:.2s;
+  }
+  .btn:hover{ transform: translateY(-1px); border-color: rgba(214,179,106,.35); }
+  .btn-gold{
+    background: linear-gradient(135deg, rgba(214,179,106,.95), rgba(184,138,47,.95));
+    color:#111827;
+    border: none;
+    box-shadow: 0 20px 50px rgba(214,179,106,.22);
+  }
+  .btn-gold:hover{ filter: brightness(1.03); }
+
+  /* FORMS */
+  label{ display:block; font-weight:800; margin:10px 0 6px; color:#f3f4f6; }
+  input, textarea, select{
+    width:100%;
+    padding:12px 12px;
+    border-radius:12px;
+    background: rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.10);
+    color: var(--text);
+    outline:none;
+  }
+  textarea{ min-height:110px; resize:vertical; }
+  input:focus, textarea:focus, select:focus{
+    border-color: rgba(214,179,106,.45);
+    box-shadow: 0 0 0 4px rgba(214,179,106,.12);
+  }
+
+  /* FLASH */
+  .flash{
+    border:1px solid rgba(56,189,248,.35);
+    background: rgba(56,189,248,.10);
+    border-radius:14px;
+    padding:12px 14px;
+    margin: 16px 0;
+  }
+
+  /* BADGES */
+  .badge{ padding:5px 10px; border-radius:999px; font-size:12px; font-weight:900; letter-spacing:.04em; }
+  .b-pending{ background: rgba(214,179,106,.12); border:1px solid rgba(214,179,106,.35); color: var(--gold); }
+  .b-approved{ background: rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.35); color:#86efac; }
+  .b-rejected{ background: rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); color:#fca5a5; }
+  .b-cancelled{ background: rgba(156,163,175,.12); border:1px solid rgba(156,163,175,.35); color:#d1d5db; }
+
+  /* MOBILE NAV TOGGLE */
+  .nav-toggle{
+    display:none;
+    background:none;
+    border:1px solid rgba(255,255,255,.15);
+    color:var(--text);
+    border-radius:8px;
+    padding:8px 12px;
+    cursor:pointer;
+    font-size:18px;
+  }
+
+  @media(max-width:700px){
+    .nav-toggle{ display:block; }
+    .nav{
+      display:none;
+      flex-direction:column;
+      width:100%;
+      background:rgba(11,15,25,.95);
+      border-top:1px solid rgba(255,255,255,.08);
+      padding:10px 0;
+      gap:4px;
+    }
+    .nav.open{ display:flex; }
+    .nav a{
+      border-radius:0;
+      border:none;
+      border-bottom:1px solid rgba(255,255,255,.05);
+      padding:12px 22px;
+      background:none;
+      width:100%;
+    }
+    .topbar-inner{ flex-wrap:wrap; }
+    .wrap{ padding:14px; }
+    .card-inner{ padding:14px; }
+  }
+
+  /* RESPONSIVE GRIDS */
+  @media(max-width:700px){
+    .two{ grid-template-columns:1fr !important; }
+    .grid{ grid-template-columns:1fr !important; }
+    .hero-inner{ grid-template-columns:1fr !important; }
+    .hero-img{ height:180px !important; }
+    .stats-grid{ grid-template-columns:1fr 1fr !important; }
+    .calendar-grid{ grid-template-columns:1fr !important; }
+    .search-bar{ flex-direction:column; }
+    .actions{ flex-direction:column; }
+    .table{ font-size:13px; }
+    .table th, .table td{ padding:8px 6px; }
+    h1{ font-size:26px !important; }
+    h2{ font-size:20px !important; }
+  }
+    margin-top:28px;
+    padding:18px 0 30px;
+    border-top:1px solid rgba(255,255,255,.08);
+    color: rgba(229,231,235,.75);
+    font-size:13px;
+  }
+
+  /* FORM ERRORS */
+  .field-error{
+    color:#fca5a5;
+    font-size:13px;
+    margin-top:4px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-badge"><span>I</span></div>
+      <div>IVORY HALL</div>
+    </div>
+
+    <button class="nav-toggle" onclick="document.querySelector('.nav').classList.toggle('open')">☰</button>
+
+    <div class="nav">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('calendar_view') }}">Calendar</a>
+        <a href="{{ url_for('book') }}">New Booking</a>
+        <a href="{{ url_for('change_password') }}">Password</a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin_panel') }}">Admin</a>
+          <a href="{{ url_for('admin_stats') }}">Stats</a>
+          <a href="{{ url_for('admin_users') }}">Users</a>
+          <a href="{{ url_for('admin_search') }}">Search</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Login</a>
+        <a href="{{ url_for('register') }}">Register</a>
+        <a href="{{ url_for('guest_book') }}">Guest Booking</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash">
+        {% for m in messages %}
+          <div>{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <div class="footer">
+    © 2026 IVORY HALL • Luxury venue booking system
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card" style="max-width:480px; margin:40px auto;">
+  <div class="card-inner">
+    <h2 style="margin:0 0 6px;">Create account</h2>
+    <p class="muted" style="margin:0 0 18px;">Join IVORY HALL to manage your bookings.</p>
+
+    <form method="post">
+      {{ form.hidden_tag() }}
+
+      <label>Username</label>
+      {{ form.username(class="", placeholder="Choose a username") }}
+      {% for e in form.username.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <label>Email</label>
+      {{ form.email(class="", type="email", placeholder="your@email.com") }}
+      {% for e in form.email.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <label>Password</label>
+      {{ form.password(class="", type="password", placeholder="Min. 6 characters") }}
+      {% for e in form.password.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <button class="btn btn-gold" type="submit" style="width:100%; margin-top:16px; padding:14px;">
+        Register
+      </button>
+    </form>
+
+    <p class="muted" style="margin-top:14px; font-size:13px;">
+      Already have an account? <a href="{{ url_for('login') }}" style="color:var(--gold);">Login</a>
+    </p>
+  </div>
+</div>
+
+{% endblock %}

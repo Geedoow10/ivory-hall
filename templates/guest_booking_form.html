@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .hero{
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.08);
+    background:
+      radial-gradient(900px 600px at 20% 0%, rgba(214,179,106,.20), transparent 55%),
+      radial-gradient(700px 500px at 90% 10%, rgba(56,189,248,.10), transparent 60%),
+      linear-gradient(180deg, rgba(17,28,51,.85), rgba(15,23,42,.70));
+    box-shadow: 0 30px 80px rgba(0,0,0,.45);
+    overflow:hidden;
+  }
+  .hero-inner{
+    padding:26px;
+    display:grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap:18px;
+    align-items:center;
+  }
+  .hero h1{
+    margin:0 0 10px;
+    font-size:38px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+  .hero p{ margin:0; color: rgba(229,231,235,.78); line-height:1.6; }
+
+  .hero-img{
+    width:100%;
+    height:260px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.10);
+    background:
+      linear-gradient(135deg, rgba(214,179,106,.16), rgba(255,255,255,.02)),
+      url("{{ url_for('static', filename='images/hero.jpg') }}") center/cover no-repeat;
+  }
+
+  .grid{
+    margin-top:16px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:16px;
+  }
+
+  .gallery{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+  }
+  .gimg{
+    height:110px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.10);
+    background: linear-gradient(135deg, rgba(214,179,106,.12), rgba(255,255,255,.02));
+    overflow:hidden;
+  }
+  .gimg img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  .two{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+  }
+
+  @media (max-width: 900px){
+    .hero-inner{ grid-template-columns: 1fr; }
+    .grid{ grid-template-columns: 1fr; }
+    .two{ grid-template-columns: 1fr; }
+    .hero-img{ height:220px; }
+  }
+</style>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <h1>IVORY HALL</h1>
+      <p>
+        Luxury venue for weddings, birthdays, corporate events and special occasions.
+        Send your booking request and our team will confirm availability.
+      </p>
+      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn btn-gold" href="#booking">Book now</a>
+        <a class="btn" href="#gallery">View gallery</a>
+      </div>
+    </div>
+    <div class="hero-img"></div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <div class="card" id="gallery">
+    <div class="card-inner">
+      <h3 style="margin:0 0 10px; letter-spacing:.08em; text-transform:uppercase;">Gallery</h3>
+      <div class="muted" style="margin-bottom:12px;">
+        Put your photos inside: <b>static/images</b> and name them <b>g1.jpg g2.jpg g3.jpg</b>
+      </div>
+      <div class="gallery">
+        <div class="gimg"><img src="{{ url_for('static', filename='images/g1.jpg') }}" alt=""></div>
+        <div class="gimg"><img src="{{ url_for('static', filename='images/g2.jpg') }}" alt=""></div>
+        <div class="gimg"><img src="{{ url_for('static', filename='images/g3.jpg') }}" alt=""></div>
+      </div>
+      <div class="muted" style="margin-top:12px;">
+        Tip: If you don't have images yet, the page still works fine.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="booking">
+    <div class="card-inner">
+      <h3 style="margin:0 0 6px; letter-spacing:.08em; text-transform:uppercase;">Guest Booking</h3>
+      <div class="muted">No login needed. Fill the form below.</div>
+
+      <form method="post" style="margin-top:10px;">
+        {{ form.hidden_tag() }}
+
+        <div class="two">
+          <div>
+            <label>Your Name</label>
+            {{ form.guest_name(class="", placeholder="Full name") }}
+            {% for e in form.guest_name.errors %}
+              <div class="field-error">{{ e }}</div>
+            {% endfor %}
+          </div>
+          <div>
+            <label>Phone</label>
+            {{ form.guest_phone(class="", placeholder="Optional") }}
+            {% for e in form.guest_phone.errors %}
+              <div class="field-error">{{ e }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <label>Email</label>
+        {{ form.guest_email(class="", type="email", placeholder="your@email.com") }}
+        {% for e in form.guest_email.errors %}
+          <div class="field-error">{{ e }}</div>
+        {% endfor %}
+
+        <label>Event Title</label>
+        {{ form.title(class="", placeholder="Wedding / Birthday / Meeting") }}
+        {% for e in form.title.errors %}
+          <div class="field-error">{{ e }}</div>
+        {% endfor %}
+
+        <label>Hall Name</label>
+        {{ form.hall_name(class="", value="IVORY HALL") }}
+        {% for e in form.hall_name.errors %}
+          <div class="field-error">{{ e }}</div>
+        {% endfor %}
+
+        <div class="two">
+          <div>
+            <label>Start Time</label>
+            {{ form.start_time(class="", type="datetime-local") }}
+            {% for e in form.start_time.errors %}
+              <div class="field-error">{{ e }}</div>
+            {% endfor %}
+          </div>
+          <div>
+            <label>End Time</label>
+            {{ form.end_time(class="", type="datetime-local") }}
+            {% for e in form.end_time.errors %}
+              <div class="field-error">{{ e }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <label>Description</label>
+        {{ form.description(class="", placeholder="Number of guests, decoration, catering, etc.") }}
+        {% for e in form.description.errors %}
+          <div class="field-error">{{ e }}</div>
+        {% endfor %}
+
+        <button class="btn btn-gold" type="submit" style="width:100%; margin-top:14px; padding:14px;">
+          Send booking request
+        </button>
+
+        <div class="muted" style="margin-top:10px; font-size:13px;">
+          Your request will be saved as <b>Pending</b> until admin approves it.
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

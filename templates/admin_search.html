@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.table{ width:100%; border-collapse:collapse; }
+.table th, .table td{ padding:11px 12px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; font-size:14px; vertical-align:top; }
+.table th{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+.btn-sm{ padding:7px 10px; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:12px; text-decoration:none; display:inline-block; }
+.search-bar{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+.search-bar > div{ flex:1; min-width:160px; }
+</style>
+
+<h2 style="margin:20px 0 16px;">🔍 Search Bookings</h2>
+
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-inner">
+    <form method="get" action="{{ url_for('admin_search') }}">
+      <div class="search-bar">
+        <div>
+          <label>Search</label>
+          <input name="q" value="{{ q }}" placeholder="Name, email, title, hall...">
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status">
+            <option value="">All statuses</option>
+            {% for s in ["pending", "approved", "rejected", "cancelled"] %}
+              <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Hall</label>
+          <select name="hall">
+            <option value="">All halls</option>
+            {% for h in halls %}
+              <option value="{{ h }}" {% if hall_filter == h %}selected{% endif %}>{{ h }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="padding-bottom:1px;">
+          <button class="btn btn-gold" type="submit" style="width:100%; padding:12px;">Search</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-inner">
+    {% if results %}
+      <p class="muted" style="margin:0 0 12px; font-size:13px;">{{ results|length }} result(s) found</p>
+      <table class="table">
+        <tr>
+          <th>Booking</th>
+          <th>Guest</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+        {% for b in results %}
+        <tr>
+          <td><b>#{{ b.id }} — {{ b.title }}</b><br><span class="muted">{{ b.hall_name }}</span></td>
+          <td>
+            {{ b.guest_name or (b.owner.username if b.owner else "—") }}<br>
+            <span class="muted">{{ b.guest_email or "" }}</span>
+          </td>
+          <td>
+            {{ b.start_time.strftime("%d %b %Y, %H:%M") }}<br>
+            <span class="muted">→ {{ b.end_time.strftime("%H:%M") }}</span>
+          </td>
+          <td>
+            {% if b.status == "approved" %}<span class="badge b-approved">APPROVED</span>
+            {% elif b.status == "rejected" %}<span class="badge b-rejected">REJECTED</span>
+            {% elif b.status == "cancelled" %}<span class="badge b-cancelled">CANCELLED</span>
+            {% else %}<span class="badge b-pending">PENDING</span>{% endif %}
+          </td>
+          <td style="display:flex; gap:6px; flex-wrap:wrap;">
+            <a class="btn-sm" href="{{ url_for('invoice', booking_id=b.id) }}"
+               style="background:rgba(255,255,255,.08); color:var(--text);">🖨️ Invoice</a>
+            <a class="btn-sm" href="{{ url_for('send_message', booking_id=b.id) }}"
+               style="background:rgba(56,189,248,.15); color:#7dd3fc;">✉️ Message</a>
+
+            {% if b.status == "pending" %}
+              <form method="post" action="{{ url_for('approve_booking', booking_id=b.id) }}" style="display:inline;">
+                {{ cancel_form.hidden_tag() }}
+                <button class="btn-sm" style="background:rgba(34,197,94,.2); color:#86efac;">✅ Approve</button>
+              </form>
+              <form method="post" action="{{ url_for('reject_booking', booking_id=b.id) }}" style="display:inline;">
+                {{ cancel_form.hidden_tag() }}
+                <button class="btn-sm" style="background:rgba(239,68,68,.2); color:#fca5a5;">❌ Reject</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% elif q or status_filter or hall_filter %}
+      <p class="muted">No results found for your search.</p>
+    {% else %}
+      <p class="muted">Enter a search term above to find bookings.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div style="margin-top:16px;">
+  <a class="btn btn-gold" href="{{ url_for('admin_panel') }}">← Back to Admin Panel</a>
+</div>
+
+{% endblock %}

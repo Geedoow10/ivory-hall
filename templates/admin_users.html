@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.table{ width:100%; border-collapse:collapse; }
+.table th, .table td{ padding:12px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; font-size:14px; }
+.table th{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+.btn-sm{ padding:7px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:12px; text-decoration:none; display:inline-block; }
+.btn-promote{ background:rgba(34,197,94,.20); color:#86efac; border:1px solid rgba(34,197,94,.3); }
+.btn-demote{ background:rgba(214,179,106,.15); color:var(--gold); border:1px solid rgba(214,179,106,.3); }
+.btn-delete{ background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+</style>
+
+<h2 style="margin:20px 0 16px;">👥 User Management</h2>
+
+<div class="card">
+  <div class="card-inner">
+    {% if users %}
+    <table class="table">
+      <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Bookings</th>
+        <th>Actions</th>
+      </tr>
+      {% for u in users %}
+      <tr>
+        <td>#{{ u.id }}</td>
+        <td><b>{{ u.username }}</b></td>
+        <td class="muted">{{ u.email }}</td>
+        <td>
+          {% if u.is_admin %}
+            <span class="badge b-approved">ADMIN</span>
+          {% else %}
+            <span class="badge b-pending">USER</span>
+          {% endif %}
+        </td>
+        <td>{{ u.appointments | length }}</td>
+        <td style="display:flex; gap:8px; flex-wrap:wrap;">
+          {% if u.id != current_user.id %}
+            <form method="post" action="{{ url_for('promote_user', user_id=u.id) }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% if u.is_admin %}
+                <button class="btn-sm btn-demote">⬇ Demote</button>
+              {% else %}
+                <button class="btn-sm btn-promote">⬆ Promote</button>
+              {% endif %}
+            </form>
+            <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}" style="display:inline;"
+                  onsubmit="return confirm('Delete {{ u.username }}? This cannot be undone.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn-sm btn-delete">🗑 Delete</button>
+            </form>
+          {% else %}
+            <span class="muted" style="font-size:12px;">← You</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+      <p class="muted">No users found.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div style="margin-top:16px;">
+  <a class="btn btn-gold" href="{{ url_for('admin_panel') }}">← Back to Admin Panel</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+@media print {
+  .topbar, .nav, .footer, .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .invoice-box { box-shadow: none !important; border: 1px solid #ccc !important; }
+  .invoice-box * { color: black !important; }
+}
+
+.invoice-box {
+  max-width: 700px;
+  margin: 30px auto;
+  background: linear-gradient(180deg, rgba(17,28,51,.95), rgba(15,23,42,.90));
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.4);
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.invoice-brand {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.invoice-meta {
+  text-align: right;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.invoice-id {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.section { margin-bottom: 22px; }
+.section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .10em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: 14px;
+}
+.row:last-child { border-bottom: none; }
+.row-label { color: var(--muted); }
+.row-value { font-weight: 700; text-align: right; }
+
+.status-bar {
+  margin-top: 24px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.print-btn {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+</style>
+
+<div class="invoice-box">
+
+  <div class="invoice-header">
+    <div>
+      <div class="invoice-brand">IVORY HALL</div>
+      <div style="color:var(--muted); font-size:13px; margin-top:4px;">Luxury Venue Booking</div>
+    </div>
+    <div class="invoice-meta">
+      <div class="invoice-id">BOOKING #{{ appt.id }}</div>
+      <div>Issued: {{ appt.start_time.strftime("%d %b %Y") }}</div>
+    </div>
+  </div>
+
+  <!-- GUEST INFO -->
+  <div class="section">
+    <div class="section-title">Guest Information</div>
+    <div class="row">
+      <span class="row-label">Name</span>
+      <span class="row-value">{{ appt.guest_name or (appt.owner.username if appt.owner else "—") }}</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Email</span>
+      <span class="row-value">{{ appt.guest_email or (appt.owner.email if appt.owner else "—") }}</span>
+    </div>
+    {% if appt.guest_phone %}
+    <div class="row">
+      <span class="row-label">Phone</span>
+      <span class="row-value">{{ appt.guest_phone }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- BOOKING INFO -->
+  <div class="section">
+    <div class="section-title">Booking Details</div>
+    <div class="row">
+      <span class="row-label">Event Title</span>
+      <span class="row-value">{{ appt.title }}</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Hall</span>
+      <span class="row-value">{{ appt.hall_name }}</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Start</span>
+      <span class="row-value">{{ appt.start_time.strftime("%d %b %Y, %H:%M") }}</span>
+    </div>
+    <div class="row">
+      <span class="row-label">End</span>
+      <span class="row-value">{{ appt.end_time.strftime("%d %b %Y, %H:%M") }}</span>
+    </div>
+    {% if appt.description %}
+    <div class="row">
+      <span class="row-label">Description</span>
+      <span class="row-value" style="max-width:300px; text-align:right;">{{ appt.description }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar
+    {% if appt.status == 'approved' %}
+      " style="background:rgba(34,197,94,.15); border:1px solid rgba(34,197,94,.35); color:#86efac;">
+      ✅ APPROVED
+    {% elif appt.status == 'rejected' %}
+      " style="background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.35); color:#fca5a5;">
+      ❌ REJECTED
+    {% elif appt.status == 'cancelled' %}
+      " style="background:rgba(156,163,175,.15); border:1px solid rgba(156,163,175,.35); color:#d1d5db;">
+      🚫 CANCELLED
+    {% else %}
+      " style="background:rgba(214,179,106,.15); border:1px solid rgba(214,179,106,.35); color:var(--gold);">
+      ⏳ PENDING
+    {% endif %}
+  </div>
+
+  <div class="print-btn no-print">
+    <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <a class="btn btn-gold" href="{{ url_for('admin_panel') }}">← Back</a>
+  </div>
+
+</div>
+
+{% endblock %}

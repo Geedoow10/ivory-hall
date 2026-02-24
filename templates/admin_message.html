@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card" style="max-width:600px; margin:30px auto;">
+  <div class="card-inner">
+
+    <h2 style="margin:0 0 4px;">✉️ Send Message</h2>
+    <p class="muted" style="margin:0 0 16px;">
+      Sending to:
+      <b>{{ appt.guest_name or (appt.owner.username if appt.owner else "Unknown") }}</b>
+      —
+      <b>{{ appt.guest_email or (appt.owner.email if appt.owner else "No email") }}</b>
+    </p>
+
+    <div style="padding:12px 14px; border-radius:12px; background:rgba(214,179,106,.08); border:1px solid rgba(214,179,106,.2); margin-bottom:18px; font-size:13px;">
+      <b>Booking #{{ appt.id }}</b> — {{ appt.title }} | {{ appt.hall_name }} |
+      {{ appt.start_time.strftime("%d %b %Y, %H:%M") }}
+    </div>
+
+    <form method="post">
+      {{ form.hidden_tag() }}
+
+      <label>Subject</label>
+      {{ form.subject(class="", placeholder="e.g. Important update about your booking") }}
+      {% for e in form.subject.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <label>Message</label>
+      {{ form.body(class="", placeholder="Write your message here...", rows=8) }}
+      {% for e in form.body.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn btn-gold" type="submit" style="flex:1; padding:14px;">
+          📨 Send Email
+        </button>
+        <a class="btn" href="{{ url_for('admin_panel') }}" style="padding:14px 20px;">
+          Cancel
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

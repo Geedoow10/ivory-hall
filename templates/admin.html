@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.admin-title{ margin:10px 0 20px; font-size:28px; font-weight:bold; letter-spacing:.1em; text-transform:uppercase; }
+.table{ width:100%; border-collapse:collapse; margin-top:10px; }
+.table th, .table td{ padding:12px; border-bottom:1px solid rgba(255,255,255,.10); text-align:left; vertical-align:top; }
+.table th{ color:var(--muted); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; flex-direction:column; }
+.btn-sm{ padding:8px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:13px; }
+.btn-approve{ background:#22c55e; color:white; }
+.btn-reject{ background:#ef4444; color:white; }
+.btn-cancel-red{ background:#dc2626; color:white; }
+.reason-box{
+  width:100%; padding:8px; border-radius:8px; margin-bottom:6px;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+  color:var(--text); font-size:13px;
+}
+.section{ margin-bottom:36px; }
+.section h3{ margin:0 0 10px; font-size:18px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+</style>
+
+<div class="admin-title">IVORY HALL — Admin Panel</div>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+  <a class="btn btn-gold" href="{{ url_for('admin_stats') }}">📊 Stats</a>
+  <a class="btn" href="{{ url_for('admin_users') }}" style="border-color:rgba(56,189,248,.3); color:#7dd3fc;">👥 Users</a>
+  <a class="btn" href="{{ url_for('admin_search') }}" style="border-color:rgba(255,255,255,.2);">🔍 Search Bookings</a>
+  <form method="post" action="{{ url_for('send_reminders') }}" style="display:inline;"
+        onsubmit="return confirm('Send reminder emails to all approved bookings for tomorrow?')">
+    {{ cancel_form.hidden_tag() }}
+    <button class="btn" style="border-color:rgba(214,179,106,.3); color:var(--gold);">📧 Send Tomorrow Reminders</button>
+  </form>
+</div>
+
+
+<!-- ================= PENDING ================= -->
+<div class="section">
+  <h3>⏳ Pending Bookings</h3>
+  {% if pending %}
+  <table class="table">
+    <tr>
+      <th>Booking</th>
+      <th>Guest</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+    {% for b in pending %}
+    <tr>
+      <td><b>#{{ b.id }} — {{ b.title }}</b><br><span class="muted">{{ b.hall_name }}</span></td>
+      <td>
+        {{ b.guest_name or (b.owner.username if b.owner else "—") }}<br>
+        <span class="muted">{{ b.guest_email or (b.owner.email if b.owner else "") }}</span>
+      </td>
+      <td>
+        <span class="muted">Start:</span> {{ b.start_time.strftime("%d %b %Y, %H:%M") }}<br>
+        <span class="muted">End:</span> {{ b.end_time.strftime("%d %b %Y, %H:%M") }}
+      </td>
+      <td><span class="badge b-pending">PENDING</span></td>
+      <td>
+        <div class="actions">
+
+          <form method="post" action="{{ url_for('approve_booking', booking_id=b.id) }}">
+            {{ cancel_form.hidden_tag() }}
+            <button class="btn-sm btn-approve">✅ Approve</button>
+          </form>
+
+          <form method="post" action="{{ url_for('reject_booking', booking_id=b.id) }}">
+            {{ cancel_form.hidden_tag() }}
+            <button class="btn-sm btn-reject">❌ Reject</button>
+          </form>
+
+          <form method="post" action="{{ url_for('cancel_booking', booking_id=b.id) }}">
+            {{ cancel_form.hidden_tag() }}
+            <textarea class="reason-box" name="reason" rows="2" placeholder="Reason for cancellation (required)" required></textarea>
+            <button class="btn-sm btn-cancel-red">🚫 Cancel + Notify</button>
+          </form>
+
+          <a class="btn-sm" href="{{ url_for('invoice', booking_id=b.id) }}"
+             style="background:rgba(255,255,255,.08); color:var(--text); text-decoration:none; display:inline-block;">
+            🖨️ Invoice
+          </a>
+          <a class="btn-sm" href="{{ url_for('send_message', booking_id=b.id) }}"
+             style="background:rgba(56,189,248,.15); color:#7dd3fc; text-decoration:none; display:inline-block;">
+            ✉️ Message
+          </a>
+
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p class="muted">No pending bookings.</p>
+  {% endif %}
+</div>
+
+
+<!-- ================= APPROVED ================= -->
+<div class="section">
+  <h3>✅ Approved Bookings</h3>
+  {% if approved %}
+  <table class="table">
+    <tr>
+      <th>Booking</th>
+      <th>Guest</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+    {% for b in approved %}
+    <tr>
+      <td><b>#{{ b.id }} — {{ b.title }}</b><br><span class="muted">{{ b.hall_name }}</span></td>
+      <td>
+        {{ b.guest_name or (b.owner.username if b.owner else "—") }}<br>
+        <span class="muted">{{ b.guest_email or (b.owner.email if b.owner else "") }}</span>
+      </td>
+      <td>
+        <span class="muted">Start:</span> {{ b.start_time.strftime("%d %b %Y, %H:%M") }}<br>
+        <span class="muted">End:</span> {{ b.end_time.strftime("%d %b %Y, %H:%M") }}
+      </td>
+      <td><span class="badge b-approved">APPROVED</span></td>
+      <td>
+        <form method="post" action="{{ url_for('cancel_booking', booking_id=b.id) }}">
+          {{ cancel_form.hidden_tag() }}
+          <textarea class="reason-box" name="reason" rows="2" placeholder="Reason for cancellation (required)" required></textarea>
+          <button class="btn-sm btn-cancel-red">🚫 Cancel + Notify</button>
+        </form>
+        <a class="btn-sm" href="{{ url_for('invoice', booking_id=b.id) }}"
+           style="background:rgba(255,255,255,.08); color:var(--text); text-decoration:none; display:inline-block;">
+          🖨️ Invoice
+        </a>
+        <a class="btn-sm" href="{{ url_for('send_message', booking_id=b.id) }}"
+           style="background:rgba(56,189,248,.15); color:#7dd3fc; text-decoration:none; display:inline-block;">
+          ✉️ Message
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p class="muted">No approved bookings.</p>
+  {% endif %}
+</div>
+
+
+<!-- ================= REJECTED ================= -->
+<div class="section">
+  <h3>❌ Rejected Requests</h3>
+  {% if rejected %}
+  <table class="table">
+    <tr>
+      <th>Booking</th>
+      <th>Guest</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Reason</th>
+    </tr>
+    {% for b in rejected %}
+    <tr>
+      <td><b>#{{ b.id }} — {{ b.title }}</b><br><span class="muted">{{ b.hall_name }}</span></td>
+      <td>
+        {{ b.guest_name or (b.owner.username if b.owner else "—") }}<br>
+        <span class="muted">{{ b.guest_email or "" }}</span>
+      </td>
+      <td>
+        {{ b.start_time.strftime("%d %b %Y, %H:%M") }}<br>
+        {{ b.end_time.strftime("%d %b %Y, %H:%M") }}
+      </td>
+      <td><span class="badge b-rejected">REJECTED</span></td>
+      <td class="muted">{{ b.cancel_reason or "No reason provided" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p class="muted">No rejected bookings.</p>
+  {% endif %}
+</div>
+
+
+<!-- ================= CANCELLED ================= -->
+<div class="section">
+  <h3>🚫 Cancelled Bookings</h3>
+  {% if cancelled %}
+  <table class="table">
+    <tr>
+      <th>Booking</th>
+      <th>Guest</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Reason</th>
+    </tr>
+    {% for b in cancelled %}
+    <tr>
+      <td><b>#{{ b.id }} — {{ b.title }}</b><br><span class="muted">{{ b.hall_name }}</span></td>
+      <td>
+        {{ b.guest_name or (b.owner.username if b.owner else "—") }}<br>
+        <span class="muted">{{ b.guest_email or "" }}</span>
+      </td>
+      <td>
+        {{ b.start_time.strftime("%d %b %Y, %H:%M") }}<br>
+        {{ b.end_time.strftime("%d %b %Y, %H:%M") }}
+      </td>
+      <td><span class="badge b-cancelled">CANCELLED</span></td>
+      <td class="muted">{{ b.cancel_reason or "No reason provided" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p class="muted">No cancelled bookings.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

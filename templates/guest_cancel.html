@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card" style="max-width:480px; margin:40px auto;">
+  <div class="card-inner">
+    <h2 style="margin:0 0 6px;">Cancel Your Booking</h2>
+    <p class="muted" style="margin:0 0 18px;">Enter your Booking ID and the email you used when booking.</p>
+
+    <form method="post">
+      {{ form.hidden_tag() }}
+
+      <label>Booking ID</label>
+      {{ form.booking_id(class="", placeholder="e.g. 42") }}
+      {% for e in form.booking_id.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <label>Email</label>
+      {{ form.email(class="", type="email", placeholder="The email you booked with") }}
+      {% for e in form.email.errors %}
+        <div class="field-error">{{ e }}</div>
+      {% endfor %}
+
+      <button class="btn btn-gold" type="submit" style="width:100%; margin-top:16px; padding:14px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:white;">
+        Cancel Booking
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
