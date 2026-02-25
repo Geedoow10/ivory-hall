@@ -47,8 +47,8 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-# Create tables on startup (works with both gunicorn and flask run)
-with app.app_context():
+@app.before_request
+def create_tables():
     db.create_all()
 
 
