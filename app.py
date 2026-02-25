@@ -47,6 +47,10 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
+# Create tables on startup (works with both gunicorn and flask run)
+with app.app_context():
+    db.create_all()
+
 
 # ======================
 # FORMS (Flask-WTF — includes CSRF + validation)
@@ -320,6 +324,24 @@ def book():
         db.session.add(appt)
         db.session.commit()
 
+        # Notify all admins
+        admins = User.query.filter_by(is_admin=True).all()
+        admin_url = url_for("admin_panel", _external=True)
+        for admin in admins:
+            send_email(
+                admin.email,
+                f"IVORY HALL – New booking #{appt.id} from {current_user.username}",
+                f"New booking request received.\n\n"
+                f"Booking ID: {appt.id}\n"
+                f"From: {current_user.username} ({current_user.email})\n"
+                f"Title: {appt.title}\n"
+                f"Hall: {appt.hall_name}\n"
+                f"Start: {appt.start_time.strftime('%d %b %Y, %H:%M')}\n"
+                f"End: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\n"
+                f"Review it here:\n{admin_url}\n\n"
+                "IVORY HALL"
+            )
+
         flash("Booking created (pending approval).")
         return redirect(url_for("dashboard"))
 
@@ -358,6 +380,7 @@ def guest_book():
 
         cancel_url = url_for("guest_cancel", _external=True)
 
+        # Email guest
         send_email(
             appt.guest_email,
             "IVORY HALL – Booking request received",
@@ -372,6 +395,25 @@ def guest_book():
             f"To cancel (if you change your mind):\n{cancel_url}\n\n"
             "Thank you,\nIVORY HALL"
         )
+
+        # Notify all admins
+        admins = User.query.filter_by(is_admin=True).all()
+        admin_url = url_for("admin_panel", _external=True)
+        for admin in admins:
+            send_email(
+                admin.email,
+                f"IVORY HALL – New guest booking #{appt.id} from {appt.guest_name}",
+                f"New guest booking request received.\n\n"
+                f"Booking ID: {appt.id}\n"
+                f"Guest: {appt.guest_name} ({appt.guest_email})\n"
+                f"Phone: {appt.guest_phone or 'N/A'}\n"
+                f"Title: {appt.title}\n"
+                f"Hall: {appt.hall_name}\n"
+                f"Start: {appt.start_time.strftime('%d %b %Y, %H:%M')}\n"
+                f"End: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\n"
+                f"Review it here:\n{admin_url}\n\n"
+                "IVORY HALL"
+            )
 
         return render_template("guest_success.html", appt=appt)
 
@@ -820,4 +862,6 @@ def calendar_view():
 
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
