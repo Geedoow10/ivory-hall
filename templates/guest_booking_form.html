@@ -94,16 +94,10 @@
   <div class="card" id="gallery">
     <div class="card-inner">
       <h3 style="margin:0 0 10px; letter-spacing:.08em; text-transform:uppercase;">Gallery</h3>
-      <div class="muted" style="margin-bottom:12px;">
-        Put your photos inside: <b>static/images</b> and name them <b>g1.jpg g2.jpg g3.jpg</b>
-      </div>
       <div class="gallery">
         <div class="gimg"><img src="{{ url_for('static', filename='images/g1.jpg') }}" alt=""></div>
         <div class="gimg"><img src="{{ url_for('static', filename='images/g2.jpg') }}" alt=""></div>
-        <div class="gimg"><img src="{{ url_for('static', filename='images/g3.jpg') }}" alt=""></div>
-      </div>
-      <div class="muted" style="margin-top:12px;">
-        Tip: If you don't have images yet, the page still works fine.
+        <div class="gimg"><img src="{{ url_for('static', filename='images/g3.jpg') }}" alt="" onerror="this.parentElement.style.display='none'"></div>
       </div>
     </div>
   </div>
