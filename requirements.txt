@@ -6,3 +6,4 @@ flask-wtf
 email-validator
 werkzeug
 gunicorn
+psycopg2-binary
