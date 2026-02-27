@@ -47,8 +47,8 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-@app.before_request
-def create_tables():
+# Create tables once at startup
+with app.app_context():
     db.create_all()
 
 
