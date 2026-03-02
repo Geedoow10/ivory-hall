@@ -200,13 +200,16 @@ def send_email(to_email, subject, body):
     if not to_email:
         return
 
+    app.logger.info("Queuing email to %s: %s", to_email, subject)
+
     def _send():
         try:
             with app.app_context():
                 msg = Message(subject=subject, recipients=[to_email], body=body)
                 mail.send(msg)
+                app.logger.info("Email sent OK to %s: %s", to_email, subject)
         except Exception as e:
-            print("EMAIL ERROR:", e)
+            app.logger.error("EMAIL ERROR to %s (%s): %s", to_email, subject, e)
 
     threading.Thread(target=_send, daemon=True).start()
 
@@ -703,6 +706,24 @@ def admin_search():
     cancel_form = AdminCancelForm()
 
     return render_template("admin_search.html", results=results, q=q, status_filter=status_filter, hall_filter=hall_filter, halls=halls, cancel_form=cancel_form)
+
+
+# ---------- TEST EMAIL ----------
+@app.route("/admin/test-email")
+@login_required
+def test_email():
+    if not current_user.is_admin:
+        abort(403)
+    try:
+        msg = Message(
+            subject="IVORY HALL – Test email",
+            recipients=[current_user.email],
+            body="This is a test email from Ivory Hall. If you received this, email sending is working correctly.",
+        )
+        mail.send(msg)
+        return f"<p>Test email sent successfully to <b>{current_user.email}</b>. Check your inbox.</p>"
+    except Exception as e:
+        return f"<p>Email FAILED: <b>{e}</b></p><p>Check MAIL_USERNAME / MAIL_PASSWORD env vars on Railway.</p>", 500
 
 
 # ---------- REMINDER EMAILS ----------
