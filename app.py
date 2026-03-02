@@ -51,8 +51,12 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
 # Create tables once at startup
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+        print('Database tables created successfully')
+except Exception as e:
+    print(f'Database error: {e}')
 
 
 # ======================
