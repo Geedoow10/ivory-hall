@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -29,7 +30,15 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_timeout": 10,
+    "pool_recycle": 300,
+    "connect_args": {
+        "connect_timeout": 10,
+        "options": "-c statement_timeout=15000",
+    },
+}
 
 # ======================
 # EMAIL SETTINGS (GMAIL)
@@ -41,6 +50,7 @@ app.config["MAIL_USE_SSL"] = False
 app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "IVORYHALL38@gmail.com")
 app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "poak svlg mldh ihgw")
 app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_USERNAME", "IVORYHALL38@gmail.com")
+app.config["MAIL_TIMEOUT"] = 10
 
 mail = Mail(app)
 db = SQLAlchemy(app)
@@ -49,8 +59,18 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-with app.app_context():
-    db.create_all()
+_db_ready = False
+
+
+@app.before_request
+def _init_db():
+    global _db_ready
+    if not _db_ready:
+        _db_ready = True  # set first so a hang/error doesn't retry on every request
+        try:
+            db.create_all()
+        except Exception as e:
+            app.logger.error("DB init error: %s", e)
 
 
 # ======================
@@ -179,11 +199,16 @@ def parse_dt(v):
 def send_email(to_email, subject, body):
     if not to_email:
         return
-    try:
-        msg = Message(subject=subject, recipients=[to_email], body=body)
-        mail.send(msg)
-    except Exception as e:
-        print("EMAIL ERROR:", e)
+
+    def _send():
+        try:
+            with app.app_context():
+                msg = Message(subject=subject, recipients=[to_email], body=body)
+                mail.send(msg)
+        except Exception as e:
+            print("EMAIL ERROR:", e)
+
+    threading.Thread(target=_send, daemon=True).start()
 
 
 def overlaps(a_start, a_end, b_start, b_end):
@@ -751,6 +776,4 @@ def calendar_view():
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
