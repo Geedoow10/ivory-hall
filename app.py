@@ -29,6 +29,10 @@ app.config["SECRET_KEY"] = "ivory-hall-secret-2026"
 database_url = os.environ.get("DATABASE_URL", "sqlite:///event_hall.db")
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+# Add search path for Railway PostgreSQL
+if "postgresql" in database_url and "options=" not in database_url:
+    separator = "&" if "?" in database_url else "?"
+    database_url += f"{separator}options=-csearch_path%3Dpublic"
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
@@ -50,14 +54,14 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-# Create tables once at startup
-try:
-    with app.app_context():
-        db.create_all()
-        print('Database tables created successfully')
-except Exception as e:
-    print(f'Database error: {e}')
+db_initialized = False
 
+@app.before_request
+def initialize_db():
+    global db_initialized
+    if not db_initialized:
+        db.create_all()
+        db_initialized = True
 
 # ======================
 # FORMS (Flask-WTF — includes CSRF + validation)
