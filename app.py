@@ -66,9 +66,9 @@ _db_ready = False
 def _init_db():
     global _db_ready
     if not _db_ready:
-        _db_ready = True  # set first so a hang/error doesn't retry on every request
         try:
             db.create_all()
+            _db_ready = True  # only mark ready on success; retries are safe with fast timeouts
         except Exception as e:
             app.logger.error("DB init error: %s", e)
 
