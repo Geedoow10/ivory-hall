@@ -23,19 +23,14 @@ app = Flask(__name__)
 # ======================
 # CONFIG
 # ======================
-# Load from environment variables — never hardcode secrets.
-# Set these in a .env file (use python-dotenv) or your deployment environment.
-app.config["SECRET_KEY"] = "ivory-hall-secret-2026"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "ivory-hall-secret-2026")
 database_url = os.environ.get("DATABASE_URL", "sqlite:///event_hall.db")
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-# Add search path for Railway PostgreSQL
-if "postgresql" in database_url and "options=" not in database_url:
-    separator = "&" if "?" in database_url else "?"
-    database_url += f"{separator}options=-csearch_path%3Dpublic"
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+
 # ======================
 # EMAIL SETTINGS (GMAIL)
 # ======================
@@ -43,9 +38,9 @@ app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
 app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USE_SSL"] = False
-app.config["MAIL_USERNAME"] = "IVORYHALL38@gmail.com"
-app.config["MAIL_PASSWORD"] = "poak svlg mldh ihgw"
-app.config["MAIL_DEFAULT_SENDER"] = "IVORYHALL38@gmail.com"
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "IVORYHALL38@gmail.com")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "poak svlg mldh ihgw")
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_USERNAME", "IVORYHALL38@gmail.com")
 
 mail = Mail(app)
 db = SQLAlchemy(app)
@@ -54,14 +49,9 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-db_initialized = False
+with app.app_context():
+    db.create_all()
 
-@app.before_request
-def initialize_db():
-    global db_initialized
-    if not db_initialized:
-        db.create_all()
-        db_initialized = True
 
 # ======================
 # FORMS (Flask-WTF — includes CSRF + validation)
@@ -81,7 +71,7 @@ class LoginForm(FlaskForm):
 class BookingForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired(), Length(max=120)])
     hall_name = StringField("Hall", validators=[DataRequired(), Length(max=120)])
-    start_time = StringField("Start Time", validators=[DataRequired()])  # datetime-local string
+    start_time = StringField("Start Time", validators=[DataRequired()])
     end_time = StringField("End Time", validators=[DataRequired()])
     description = TextAreaField("Description", validators=[Length(max=1000)])
 
@@ -165,9 +155,6 @@ class Appointment(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     description = db.Column(db.Text)
-    # status: pending / approved / cancelled / rejected
-    # "rejected" = admin denied a pending request
-    # "cancelled" = admin or guest cancelled an existing/pending booking
     status = db.Column(db.String(20), default="pending")
     cancel_reason = db.Column(db.Text)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
@@ -186,7 +173,6 @@ def load_user(user_id):
 
 
 def parse_dt(v):
-    # input type="datetime-local" => 2026-02-23T12:30
     return datetime.strptime(v, "%Y-%m-%dT%H:%M")
 
 
@@ -205,7 +191,6 @@ def overlaps(a_start, a_end, b_start, b_end):
 
 
 def hall_conflict(hall_name, start_time, end_time, exclude_id=None):
-    """Check for overlapping bookings (pending + approved only)."""
     q = Appointment.query.filter(
         Appointment.hall_name == hall_name,
         Appointment.status.in_(["pending", "approved"]),
@@ -230,11 +215,7 @@ def index():
 
 
 @app.route("/init-db")
-@login_required
 def init_db():
-    """Admin-only route to initialise the database."""
-    if not current_user.is_admin:
-        abort(403)
     db.create_all()
     return "Database initialised."
 
@@ -335,22 +316,13 @@ def book():
         db.session.add(appt)
         db.session.commit()
 
-        # Notify all admins
         admins = User.query.filter_by(is_admin=True).all()
         admin_url = url_for("admin_panel", _external=True)
         for admin in admins:
             send_email(
                 admin.email,
                 f"IVORY HALL – New booking #{appt.id} from {current_user.username}",
-                f"New booking request received.\n\n"
-                f"Booking ID: {appt.id}\n"
-                f"From: {current_user.username} ({current_user.email})\n"
-                f"Title: {appt.title}\n"
-                f"Hall: {appt.hall_name}\n"
-                f"Start: {appt.start_time.strftime('%d %b %Y, %H:%M')}\n"
-                f"End: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\n"
-                f"Review it here:\n{admin_url}\n\n"
-                "IVORY HALL"
+                f"New booking request received.\n\nBooking ID: {appt.id}\nFrom: {current_user.username} ({current_user.email})\nTitle: {appt.title}\nHall: {appt.hall_name}\nStart: {appt.start_time.strftime('%d %b %Y, %H:%M')}\nEnd: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\nReview it here:\n{admin_url}\n\nIVORY HALL"
             )
 
         flash("Booking created (pending approval).")
@@ -391,39 +363,21 @@ def guest_book():
 
         cancel_url = url_for("guest_cancel", _external=True)
 
-        # Email guest
+        # Email guest confirmation
         send_email(
             appt.guest_email,
             "IVORY HALL – Booking request received",
-            f"Hello {appt.guest_name},\n\n"
-            f"Your booking request has been received.\n\n"
-            f"Booking ID: {appt.id}\n"
-            f"Title: {appt.title}\n"
-            f"Hall: {appt.hall_name}\n"
-            f"Start: {appt.start_time}\n"
-            f"End: {appt.end_time}\n\n"
-            "Status: PENDING\n\n"
-            f"To cancel (if you change your mind):\n{cancel_url}\n\n"
-            "Thank you,\nIVORY HALL"
+            f"Hello {appt.guest_name},\n\nYour booking request has been received.\n\nBooking ID: {appt.id}\nTitle: {appt.title}\nHall: {appt.hall_name}\nStart: {appt.start_time.strftime('%d %b %Y, %H:%M')}\nEnd: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\nStatus: PENDING\n\nTo cancel:\n{cancel_url}\n\nThank you,\nIVORY HALL"
         )
 
-        # Notify all admins
+        # Email all admins
         admins = User.query.filter_by(is_admin=True).all()
         admin_url = url_for("admin_panel", _external=True)
         for admin in admins:
             send_email(
                 admin.email,
                 f"IVORY HALL – New guest booking #{appt.id} from {appt.guest_name}",
-                f"New guest booking request received.\n\n"
-                f"Booking ID: {appt.id}\n"
-                f"Guest: {appt.guest_name} ({appt.guest_email})\n"
-                f"Phone: {appt.guest_phone or 'N/A'}\n"
-                f"Title: {appt.title}\n"
-                f"Hall: {appt.hall_name}\n"
-                f"Start: {appt.start_time.strftime('%d %b %Y, %H:%M')}\n"
-                f"End: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\n"
-                f"Review it here:\n{admin_url}\n\n"
-                "IVORY HALL"
+                f"New guest booking received.\n\nBooking ID: {appt.id}\nGuest: {appt.guest_name} ({appt.guest_email})\nPhone: {appt.guest_phone or 'N/A'}\nTitle: {appt.title}\nHall: {appt.hall_name}\nStart: {appt.start_time.strftime('%d %b %Y, %H:%M')}\nEnd: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\nReview it here:\n{admin_url}\n\nIVORY HALL"
             )
 
         return render_template("guest_success.html", appt=appt)
@@ -452,7 +406,6 @@ def guest_cancel():
             flash("Email does not match this booking.")
             return redirect(url_for("guest_cancel"))
 
-        # Use "cancelled" to distinguish from admin "rejected"
         appt.status = "cancelled"
         appt.cancel_reason = "Cancelled by guest"
         db.session.commit()
@@ -460,9 +413,7 @@ def guest_cancel():
         send_email(
             appt.guest_email,
             "IVORY HALL – Booking cancelled",
-            f"Hello {appt.guest_name},\n\n"
-            f"Your booking (ID: {appt.id}) has been cancelled.\n\n"
-            "Thank you,\nIVORY HALL"
+            f"Hello {appt.guest_name},\n\nYour booking (ID: {appt.id}) has been cancelled.\n\nThank you,\nIVORY HALL"
         )
 
         flash("Your booking has been cancelled.")
@@ -483,17 +434,9 @@ def admin_panel():
     approved = Appointment.query.filter_by(status="approved").order_by(Appointment.start_time.asc()).all()
     rejected = Appointment.query.filter_by(status="rejected").order_by(Appointment.start_time.asc()).all()
     cancelled = Appointment.query.filter_by(status="cancelled").order_by(Appointment.start_time.asc()).all()
-
     cancel_form = AdminCancelForm()
 
-    return render_template(
-        "admin.html",
-        pending=pending,
-        approved=approved,
-        rejected=rejected,
-        cancelled=cancelled,
-        cancel_form=cancel_form,
-    )
+    return render_template("admin.html", pending=pending, approved=approved, rejected=rejected, cancelled=cancelled, cancel_form=cancel_form)
 
 
 # ---------- APPROVE ----------
@@ -517,22 +460,15 @@ def approve_booking(booking_id):
     if appt.guest_email:
         send_email(
             appt.guest_email,
-            "IVORY HALL – Booking approved ✅",
-            f"Hello {appt.guest_name},\n\n"
-            f"Your booking is APPROVED ✅\n\n"
-            f"Booking ID: {appt.id}\n"
-            f"Title: {appt.title}\n"
-            f"Hall: {appt.hall_name}\n"
-            f"Start: {appt.start_time}\n"
-            f"End: {appt.end_time}\n\n"
-            "IVORY HALL"
+            "IVORY HALL – Booking approved",
+            f"Hello {appt.guest_name},\n\nYour booking is APPROVED.\n\nBooking ID: {appt.id}\nTitle: {appt.title}\nHall: {appt.hall_name}\nStart: {appt.start_time.strftime('%d %b %Y, %H:%M')}\nEnd: {appt.end_time.strftime('%d %b %Y, %H:%M')}\n\nIVORY HALL"
         )
 
     flash("Booking approved.")
     return redirect(url_for("admin_panel"))
 
 
-# ---------- REJECT (admin denies a pending request) ----------
+# ---------- REJECT ----------
 @app.route("/reject/<int:booking_id>", methods=["POST"])
 @login_required
 def reject_booking(booking_id):
@@ -550,18 +486,15 @@ def reject_booking(booking_id):
     if appt.guest_email:
         send_email(
             appt.guest_email,
-            "IVORY HALL – Booking rejected ❌",
-            f"Hello {appt.guest_name},\n\n"
-            f"Your booking request was REJECTED ❌\n\n"
-            f"Booking ID: {appt.id}\n\n"
-            "IVORY HALL"
+            "IVORY HALL – Booking rejected",
+            f"Hello {appt.guest_name},\n\nYour booking request was REJECTED.\n\nBooking ID: {appt.id}\n\nIVORY HALL"
         )
 
     flash("Booking rejected.")
     return redirect(url_for("admin_panel"))
 
 
-# ---------- CANCEL (admin cancels an approved booking with a reason) ----------
+# ---------- CANCEL ----------
 @app.route("/cancel/<int:booking_id>", methods=["POST"])
 @login_required
 def cancel_booking(booking_id):
@@ -583,15 +516,7 @@ def cancel_booking(booking_id):
         send_email(
             appt.guest_email,
             "IVORY HALL – Booking cancelled",
-            f"Hello {appt.guest_name},\n\n"
-            f"Your booking has been CANCELLED by the admin.\n\n"
-            f"Booking ID: {appt.id}\n"
-            f"Title: {appt.title}\n"
-            f"Hall: {appt.hall_name}\n"
-            f"Start: {appt.start_time}\n"
-            f"End: {appt.end_time}\n\n"
-            f"Reason: {reason}\n\n"
-            "Thank you,\nIVORY HALL"
+            f"Hello {appt.guest_name},\n\nYour booking has been CANCELLED by the admin.\n\nBooking ID: {appt.id}\nTitle: {appt.title}\nHall: {appt.hall_name}\nReason: {reason}\n\nThank you,\nIVORY HALL"
         )
 
     flash("Booking cancelled.")
@@ -611,26 +536,15 @@ def admin_stats():
     rejected_count = Appointment.query.filter_by(status="rejected").count()
     cancelled_count = Appointment.query.filter_by(status="cancelled").count()
 
-    # Bookings per hall
     from sqlalchemy import func
     hall_stats = db.session.query(
         Appointment.hall_name,
         func.count(Appointment.id).label("count")
     ).group_by(Appointment.hall_name).all()
 
-    # Recent 5 bookings
     recent = Appointment.query.order_by(Appointment.id.desc()).limit(5).all()
 
-    return render_template(
-        "admin_stats.html",
-        total=total,
-        pending_count=pending_count,
-        approved_count=approved_count,
-        rejected_count=rejected_count,
-        cancelled_count=cancelled_count,
-        hall_stats=hall_stats,
-        recent=recent,
-    )
+    return render_template("admin_stats.html", total=total, pending_count=pending_count, approved_count=approved_count, rejected_count=rejected_count, cancelled_count=cancelled_count, hall_stats=hall_stats, recent=recent)
 
 
 # ---------- INVOICE ----------
@@ -724,7 +638,6 @@ def delete_user(user_id):
     if user.id == current_user.id:
         flash("You cannot delete yourself.")
         return redirect(url_for("admin_users"))
-    # Detach their bookings
     Appointment.query.filter_by(user_id=user.id).update({"user_id": None})
     db.session.delete(user)
     db.session.commit()
@@ -761,19 +674,10 @@ def admin_search():
         query = query.filter(Appointment.hall_name == hall_filter)
 
     results = query.order_by(Appointment.start_time.desc()).all()
-
     halls = sorted(set(b.hall_name for b in Appointment.query.all() if b.hall_name))
     cancel_form = AdminCancelForm()
 
-    return render_template(
-        "admin_search.html",
-        results=results,
-        q=q,
-        status_filter=status_filter,
-        hall_filter=hall_filter,
-        halls=halls,
-        cancel_form=cancel_form,
-    )
+    return render_template("admin_search.html", results=results, q=q, status_filter=status_filter, hall_filter=hall_filter, halls=halls, cancel_form=cancel_form)
 
 
 # ---------- REMINDER EMAILS ----------
@@ -798,16 +702,8 @@ def send_reminders():
         if to_email:
             send_email(
                 to_email,
-                "IVORY HALL – Reminder: Your event is tomorrow 🗓️",
-                f"Hello {name},\n\n"
-                f"This is a friendly reminder that your event is TOMORROW.\n\n"
-                f"Booking ID: {b.id}\n"
-                f"Title: {b.title}\n"
-                f"Hall: {b.hall_name}\n"
-                f"Start: {b.start_time.strftime('%d %b %Y, %H:%M')}\n"
-                f"End: {b.end_time.strftime('%d %b %Y, %H:%M')}\n\n"
-                "We look forward to hosting you!\n\n"
-                "IVORY HALL"
+                "IVORY HALL – Reminder: Your event is tomorrow",
+                f"Hello {name},\n\nThis is a reminder that your event is TOMORROW.\n\nBooking ID: {b.id}\nTitle: {b.title}\nHall: {b.hall_name}\nStart: {b.start_time.strftime('%d %b %Y, %H:%M')}\nEnd: {b.end_time.strftime('%d %b %Y, %H:%M')}\n\nWe look forward to hosting you!\n\nIVORY HALL"
             )
             sent += 1
 
@@ -821,7 +717,6 @@ def send_reminders():
 def calendar_view():
     from datetime import timedelta
 
-    # Get week start from query param, default to this Monday
     start_param = request.args.get("start")
     hall_filter = request.args.get("hall", "")
 
@@ -832,44 +727,27 @@ def calendar_view():
             week_start = datetime.today().date()
     else:
         today = datetime.today().date()
-        week_start = today - timedelta(days=today.weekday())  # Monday
+        week_start = today - timedelta(days=today.weekday())
 
-    # 7 days of the week
     days = [week_start + timedelta(days=i) for i in range(7)]
     prev_week = (week_start - timedelta(days=7)).isoformat()
     next_week = (week_start + timedelta(days=7)).isoformat()
 
-    # Get all bookings (filter by hall if selected)
-    q = Appointment.query.filter(
-        Appointment.status.in_(["pending", "approved"])
-    )
+    q = Appointment.query.filter(Appointment.status.in_(["pending", "approved"]))
     if hall_filter:
         q = q.filter(Appointment.hall_name == hall_filter)
 
     all_bookings = q.order_by(Appointment.start_time.asc()).all()
 
-    # Group bookings by day (key = date isoformat)
     bookings_by_day = {d.isoformat(): [] for d in days}
     for b in all_bookings:
         day_key = b.start_time.date().isoformat()
         if day_key in bookings_by_day:
             bookings_by_day[day_key].append(b)
 
-    # Get unique hall names for filter dropdown
-    halls = sorted(set(
-        b.hall_name for b in Appointment.query.all() if b.hall_name
-    ))
+    halls = sorted(set(b.hall_name for b in Appointment.query.all() if b.hall_name))
 
-    return render_template(
-        "calendar.html",
-        days=days,
-        bookings_by_day=bookings_by_day,
-        week_start=week_start,
-        prev_week=prev_week,
-        next_week=next_week,
-        hall=hall_filter,
-        halls=halls,
-    )
+    return render_template("calendar.html", days=days, bookings_by_day=bookings_by_day, week_start=week_start, prev_week=prev_week, next_week=next_week, hall=hall_filter, halls=halls)
 
 
 if __name__ == "__main__":
