@@ -205,8 +205,9 @@ def send_email(to_email, subject, body):
             with app.app_context():
                 msg = Message(subject=subject, recipients=[to_email], body=body)
                 mail.send(msg)
+                app.logger.info("Email sent to %s: %s", to_email, subject)
         except Exception as e:
-            print("EMAIL ERROR:", e)
+            app.logger.error("EMAIL ERROR to %s (%s): %s", to_email, subject, e)
 
     threading.Thread(target=_send, daemon=True).start()
 
