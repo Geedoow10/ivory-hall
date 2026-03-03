@@ -122,19 +122,21 @@
       </td>
       <td><span class="badge b-approved">APPROVED</span></td>
       <td>
-        <form method="post" action="{{ url_for('cancel_booking', booking_id=b.id) }}">
-          {{ cancel_form.hidden_tag() }}
-          <textarea class="reason-box" name="reason" rows="2" placeholder="Reason for cancellation (required)" required></textarea>
-          <button class="btn-sm btn-cancel-red">🚫 Cancel + Notify</button>
-        </form>
-        <a class="btn-sm" href="{{ url_for('invoice', booking_id=b.id) }}"
-           style="background:rgba(255,255,255,.08); color:var(--text); text-decoration:none; display:inline-block;">
-          🖨️ Invoice
-        </a>
-        <a class="btn-sm" href="{{ url_for('send_message', booking_id=b.id) }}"
-           style="background:rgba(56,189,248,.15); color:#7dd3fc; text-decoration:none; display:inline-block;">
-          ✉️ Message
-        </a>
+        <div class="actions">
+          <form method="post" action="{{ url_for('cancel_booking', booking_id=b.id) }}">
+            {{ cancel_form.hidden_tag() }}
+            <textarea class="reason-box" name="reason" rows="2" placeholder="Reason for cancellation (required)" required></textarea>
+            <button class="btn-sm btn-cancel-red">🚫 Cancel + Notify</button>
+          </form>
+          <a class="btn-sm" href="{{ url_for('invoice', booking_id=b.id) }}"
+             style="background:rgba(255,255,255,.08); color:var(--text); text-decoration:none; display:inline-block;">
+            🖨️ Invoice
+          </a>
+          <a class="btn-sm" href="{{ url_for('send_message', booking_id=b.id) }}"
+             style="background:rgba(56,189,248,.15); color:#7dd3fc; text-decoration:none; display:inline-block;">
+            ✉️ Message
+          </a>
+        </div>
       </td>
     </tr>
     {% endfor %}
