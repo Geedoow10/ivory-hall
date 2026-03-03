@@ -30,15 +30,16 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+
+_engine_options = {
     "pool_pre_ping": True,
     "pool_timeout": 10,
     "pool_recycle": 300,
-    "connect_args": {
-        "connect_timeout": 10,
-        "options": "-c statement_timeout=15000",
-    },
 }
+if not database_url.startswith("sqlite"):
+    # psycopg2-only: cap TCP connect and per-statement execution time
+    _engine_options["connect_args"] = {"connect_timeout": 10}
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = _engine_options
 
 # ======================
 # EMAIL SETTINGS (GMAIL)
